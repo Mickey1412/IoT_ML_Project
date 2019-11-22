@@ -7,7 +7,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
-
+import math
 
 # inicializacion de las variables
 presion = np.zeros(0)
@@ -15,65 +15,113 @@ altitud = np.zeros(0)
 humedad = np.zeros(0)
 temperatura = np.zeros(0)
 
-count = 1
 
-# For loop para recorrer el csv con intervalos de 10 renglones y generar los calculos
-for data in pd.read_csv("Sensado_GYM_Completo.csv", usecols=[
-        "Presion", "Altitud", "Humedad", "Temperatura"], chunksize=10):
-    # Calculos de la presion
-    presion = data["Presion"].values
-    presion = presion[np.logical_not(np.isnan(presion))]
-    #presionNan = data["Presion"].values
+def buildDataF(dataF):
+    # For loop para recorrer el csv con intervalos de 10 renglones y generar los calculos
+    dfTemp=pd.DataFrame()
+    
+    #Divide el dataframe en n grupos, n viene siendo una division del tamño de renglones entre 10
+    for data in np.array_split(dataF,math.floor(np.shape(dataF)[0]/10)):
+        # Calculos de la presion
+        presion = data["Presion"].values
+        presion = presion[np.logical_not(np.isnan(presion))]
+        #presionNan = data["Presion"].values
+        if presion.any():
+            presionMean = presion.mean()
+            presionStd = np.std(presion)
+            presionKrt = kurtosis(presion)
 
-    count = count + 1
+            # Calculos de la altitud
+            altitud = data["Altitud"].values
+            #altitudNan = data["Altitud"].values
+            altitud = altitud[np.logical_not(np.isnan(altitud))]
+            altitudMean = altitud.mean()
+            altitudStd = np.std(altitud)
+            altitudKrt = kurtosis(altitud)
 
-    if presion.any():
-        #print('**', presion)
-        presionMean = presion.mean()
-        presionStd = np.std(presion)
-        presionKrt = kurtosis(presion)
+            # Calculos de la humedad
+            humedad = data["Humedad"].values
+            #humedadNan = data["Humedad"].values
+            humedad = humedad[np.logical_not(np.isnan(humedad))]
+            humedadMean = humedad.mean()
+            humedadStd = np.std(humedad)
+            humedadKrt = kurtosis(humedad)
 
-        # Calculos de la altitud
-        altitud = data["Altitud"].values
-        #altitudNan = data["Altitud"].values
-        altitud = altitud[np.logical_not(np.isnan(altitud))]
-        altitudMean = altitud.mean()
-        altitudStd = np.std(altitud)
-        altitudKrt = kurtosis(altitud)
+            # Calculos de la temperatura
+            temperatura = data["Temperatura"].values
+            #temperaturaNan = data["Temperatura"].values
+            temperatura = temperatura[np.logical_not(np.isnan(temperatura))]
+            temperaturaMean = temperatura.mean()
+            temperaturaStd = np.std(temperatura)
+            temperaturaKrt = kurtosis(temperatura)
+        else:
+            print("something is null")
 
-        # Calculos de la humedad
-        humedad = data["Humedad"].values
-        #humedadNan = data["Humedad"].values
-        humedad = humedad[np.logical_not(np.isnan(humedad))]
-        humedadMean = humedad.mean()
-        humedadStd = np.std(humedad)
-        humedadKrt = kurtosis(humedad)
+        # Junta los datos que se meteran en un renglon del dataframe
+        data = [[presionMean,presionStd,presionKrt,
+                altitudMean,altitudStd,altitudKrt,
+                humedadMean,humedadStd,humedadKrt,
+                temperaturaMean,temperaturaStd,temperaturaKrt,dataF.Ocupacion.iloc[0]] ]
 
-        # Calculos de la temperatura
-        temperatura = data["Temperatura"].values
-        #temperaturaNan = data["Temperatura"].values
-        temperatura = temperatura[np.logical_not(np.isnan(temperatura))]
-        temperaturaMean = temperatura.mean()
-        temperaturaStd = np.std(temperatura)
-        temperaturaKrt = kurtosis(temperatura)
-    else:
-        print("something is null")
+        names = ["presionMean","presionStd","presionKrt",
+                "altitudMean","altitudStd","altitudKrt",
+                "humedadMean","humedadStd","humedadKrt",
+                "temperaturaMean","temperaturaStd","temperaturaKrt","Ocupacion"] 
+
+        
+        # Une este renglon al dataframe que se enviara al final 
+        dfTemp = dfTemp.append(pd.DataFrame(data, columns = names) )
+
+    return dfTemp
+
+
+df = pd.read_csv("Sensado_GYM_Completo.csv", usecols=[
+                 "Fecha","Presion", "Altitud", "Humedad", "Temperatura", "Ocupacion"])
+df = df.dropna()
+
+#Filtra el dataframe para solo contenga el día
+df['Fecha'] = pd.to_datetime(df['Fecha']).dt.strftime('%d') #dt.strftime('%d/%m/%Y %H:%M')
+
+dfLow = df[df["Ocupacion"]=='L']
+dfMed = df[df["Ocupacion"]=='M']
+dfHigh = df[df["Ocupacion"]=='H']
+
+dfFinal=pd.DataFrame()
+
+while not dfLow.empty: #Mientras no esten vacias
+    dfFinal= dfFinal.append(buildDataF(dfLow[dfLow["Fecha"]==dfLow.iloc[0,0]])) #obtiene solo los valores con la primera fecha y lo envía a la funcion para 
+                                                                    #que construya el dataframe y lo una al dataframe que tendra todos los datos
+    dfLow=dfLow[dfLow.Fecha != dfLow.iloc[0,0]] #Remueve todos los datos que contengan la primera fecha
+
+while not dfMed.empty: #Mientras no esten vacias
+    dfFinal= dfFinal.append(buildDataF(dfMed[dfMed["Fecha"]==dfMed.iloc[0,0]])) #obtiene solo los valores con la primera fecha y lo envía a la funcion para 
+                                                    #que construya el dataframe    
+    dfMed=dfMed[dfMed.Fecha != dfMed.iloc[0,0]] #Remueve todos los datos que contengan la primera fecha
+
+while not dfHigh.empty: #Mientras no esten vacias
+    dfFinal= dfFinal.append(buildDataF(dfHigh[dfHigh["Fecha"]==dfHigh.iloc[0,0]])) #obtiene solo los valores con la primera fecha y lo envía a la funcion para 
+                                                    #que construya el dataframe
+    dfHigh= dfHigh[dfHigh.Fecha != dfHigh.iloc[0,0]] #Remueve todos los datos que contengan la primera fecha
+
+
+
+
+
 
 
 
 # ---------------------------------- Clasificacion de instancias usando una SVM-------------------------------#
 
 
-df = pd.read_csv("Sensado_GYM_Completo.csv", usecols=[
-                 "Presion", "Altitud", "Humedad", "Temperatura", "Ocupacion"])
 
-df = df.dropna()
+df= dfFinal
+
 training_set, test_set = train_test_split(df, test_size=0.2, random_state=1)
 
-X_train = training_set.iloc[:, 0:2].values
-Y_train = training_set.iloc[:, 4].values
-X_test = test_set.iloc[:, 0:2].values
-Y_test = test_set.iloc[:, 4].values
+X_train = training_set.iloc[:, 0:12].values
+Y_train = training_set.iloc[:, 12].values
+X_test = test_set.iloc[:, 0:12].values
+Y_test = test_set.iloc[:, 12].values
 print("Group By: \n",df.groupby('Ocupacion').count())
 #print("Presion Original: \n", np.size(presionNan))
 #print("Altitud Original: \n", np.size(altitudNan))
@@ -131,3 +179,5 @@ print("\nAccuracy Of RF: ", accuracy, "\n")
 
 # Referencias:
 # https://scikit-learn.org/stable/modules/svm.html
+
+
