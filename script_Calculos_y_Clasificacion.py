@@ -1,12 +1,13 @@
 import numpy as np
 import pandas as pd
-from sklearn import svm
+#from sklearn import svm
 from scipy.stats import kurtosis
 from sklearn.metrics import confusion_matrix
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
+from imblearn.over_sampling import RandomOverSampler, SMOTE, ADASYN
 import math
 
 # inicializacion de las variables
@@ -25,7 +26,6 @@ def buildDataF(dataF):
         # Calculos de la presion
         presion = data["Presion"].values
         presion = presion[np.logical_not(np.isnan(presion))]
-        #presionNan = data["Presion"].values
         if presion.any():
             presionMean = presion.mean()
             presionStd = np.std(presion)
@@ -33,7 +33,6 @@ def buildDataF(dataF):
 
             # Calculos de la altitud
             altitud = data["Altitud"].values
-            #altitudNan = data["Altitud"].values
             altitud = altitud[np.logical_not(np.isnan(altitud))]
             altitudMean = altitud.mean()
             altitudStd = np.std(altitud)
@@ -41,7 +40,6 @@ def buildDataF(dataF):
 
             # Calculos de la humedad
             humedad = data["Humedad"].values
-            #humedadNan = data["Humedad"].values
             humedad = humedad[np.logical_not(np.isnan(humedad))]
             humedadMean = humedad.mean()
             humedadStd = np.std(humedad)
@@ -103,31 +101,33 @@ while not dfHigh.empty: #Mientras no esten vacias
                                                     #que construya el dataframe
     dfHigh= dfHigh[dfHigh.Fecha != dfHigh.iloc[0,0]] #Remueve todos los datos que contengan la primera fecha
 
-
-
-
-
-
-
-
 # ---------------------------------- Clasificacion de instancias usando una SVM-------------------------------#
 
 
 
 df= dfFinal
-
 training_set, test_set = train_test_split(df, test_size=0.2, random_state=1)
 
 X_train = training_set.iloc[:, 0:12].values
 Y_train = training_set.iloc[:, 12].values
 X_test = test_set.iloc[:, 0:12].values
 Y_test = test_set.iloc[:, 12].values
-print("Group By: \n",df.groupby('Ocupacion').count())
-#print("Presion Original: \n", np.size(presionNan))
-#print("Altitud Original: \n", np.size(altitudNan))
-#print("Humedad Original: \n", np.size(humedadNan))
-#print("Temperatura Original: \n", np.size(temperaturaNan))
 
+# ------------------ Oversampling ---------------------------------
+#print("Group By: \n",df.groupby('Ocupacion').count())
+print("Antes del resampling")
+print("Xtrain: ",np.size(X_train))
+print("Ytrain: ",np.size(Y_train))
+
+#Tecnicas de Resampling
+#sm = RandomOverSampler(random_state = 0)
+#sm = SMOTE(random_state = 0)
+sm = ADASYN(random_state = 0)
+X_train, Y_train = sm.fit_sample(X_train, Y_train)
+
+print("Despues del resampling")
+print("Xtrain: ",np.size(X_train))
+print("Ytrain: ",np.size(Y_train))
 classifier = SVC(kernel='rbf', random_state=1)
 classifier.fit(X_train, Y_train)
 
@@ -170,7 +170,7 @@ classifier.fit(X_train, Y_train)
 Y_pred = classifier.predict(X_test)
 
 
-print(classifier.feature_importances_)
+#print(classifier.feature_importances_)
 cm = confusion_matrix(Y_test, Y_pred)
 print("CM RF: \n", cm)
 accuracy = float(cm.diagonal().sum())/len(Y_test)
