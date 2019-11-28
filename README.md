@@ -2,6 +2,10 @@
 
 For this project, it is planned to use devices which are capable of digitizing signals in order to generate detection and control routines, so when one of the factors occurs, it can launch indicators which will notify an end user and thus to have a stable control over these situations and also that they react automatically to problems without the need for intervention.
 
+### Developers
+
+Andrés Martínez @AndresMartinez97
+
 ### Methodology to solve it
 
 The project is divided into several phases which are constantly repeated:
