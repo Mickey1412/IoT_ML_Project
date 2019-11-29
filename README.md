@@ -5,6 +5,7 @@ For this project, it is planned to use devices which are capable of digitizing s
 ### Developers
 
 Andrés Martínez @AndresMartinez97
+Roberto Pérez Barrera @Robertocml
 
 ### Methodology to solve it
 
