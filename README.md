@@ -8,6 +8,8 @@ Andrés Martínez @AndresMartinez97
 
 Roberto Pérez Barrera @Robertocml
 
+Miguel Angel Rocha Cabello  @Mickey1412
+
 ### Methodology to solve it
 
 The project is divided into several phases which are constantly repeated:
